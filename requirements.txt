@@ -1,5 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 transformers
 torch
 pydantic
+praw
+python-dotenv
+prometheus-client
+requests
+httpx

@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  sentiment-api:
+    build: .
+    container_name: sentiment-api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - sentiment-network
+    restart: unless-stopped
+
+  ingestion-service:
+    build: .
+    container_name: ingestion-service
+    command: python ingestion_service.py
+    environment:
+      - SENTIMENT_API_URL=http://sentiment-api:8000
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-demo_client}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-demo_secret}
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT:-sentiment-analyzer/1.0}
+      - REDDIT_USERNAME=${REDDIT_USERNAME:-}
+      - REDDIT_PASSWORD=${REDDIT_PASSWORD:-}
+      - SUBREDDIT=${SUBREDDIT:-wallstreetbets}
+      - BATCH_SIZE=${BATCH_SIZE:-10}
+      - POLL_INTERVAL=${POLL_INTERVAL:-60}
+    depends_on:
+      sentiment-api:
+        condition: service_healthy
+    networks:
+      - sentiment-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - sentiment-network
+    restart: unless-stopped
+
+networks:
+  sentiment-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
