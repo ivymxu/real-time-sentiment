@@ -5,6 +5,7 @@ from transformers import pipeline
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import logging
 import time
+import os
 from collections import deque
 from typing import List, Dict
 
@@ -12,6 +13,11 @@ app = FastAPI(title="Sentiment Analysis Microservice")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Configuration
+SENTIMENT_HISTORY_SIZE = int(os.getenv("SENTIMENT_HISTORY_SIZE", "100"))
+BULLISH_THRESHOLD = float(os.getenv("BULLISH_THRESHOLD", "0.6"))
+BEARISH_THRESHOLD = float(os.getenv("BEARISH_THRESHOLD", "0.6"))
 
 # Prometheus metrics
 REQUEST_COUNT = Counter('sentiment_requests_total', 'Total sentiment analysis requests')
@@ -26,7 +32,7 @@ classifier = pipeline("sentiment-analysis", model="distilbert-base-uncased-finet
 print("Model loaded!")
 
 # Store recent sentiment results for market signal calculation
-sentiment_history = deque(maxlen=100)
+sentiment_history = deque(maxlen=SENTIMENT_HISTORY_SIZE)
 
 # Data Model 
 class SentimentRequest(BaseModel):
@@ -117,11 +123,11 @@ async def get_market_signal() -> MarketSignal:
     negative_ratio = negative_count / total_count
     avg_confidence = sum(s["confidence"] for s in sentiment_history) / total_count
     
-    # Determine signal
-    if positive_ratio > 0.6:
+    # Determine signal using configured thresholds
+    if positive_ratio > BULLISH_THRESHOLD:
         signal = "BULLISH"
         strength = positive_ratio
-    elif negative_ratio > 0.6:
+    elif negative_ratio > BEARISH_THRESHOLD:
         signal = "BEARISH"
         strength = negative_ratio
     else:

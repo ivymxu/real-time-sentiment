@@ -12,6 +12,10 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Configuration constants
+MAX_TEXT_LENGTH = int(os.getenv("MAX_TEXT_LENGTH", "512"))
+SENTIMENT_BUFFER_SIZE = int(os.getenv("SENTIMENT_BUFFER_SIZE", "1000"))
+
 
 class RedditStreamIngestion:
     """Service to ingest Reddit comments and send them for sentiment analysis"""
@@ -39,7 +43,7 @@ class RedditStreamIngestion:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{self.sentiment_api_url}/analyze",
-                    json={"text": text[:512]}  # Limit text length
+                    json={"text": text[:MAX_TEXT_LENGTH]}
                 )
                 response.raise_for_status()
                 return response.json()
@@ -113,9 +117,9 @@ class RedditStreamIngestion:
             if results:
                 self.sentiment_buffer.extend(results)
                 
-                # Keep buffer size manageable (last 1000 items)
-                if len(self.sentiment_buffer) > 1000:
-                    self.sentiment_buffer = self.sentiment_buffer[-1000:]
+                # Keep buffer size manageable
+                if len(self.sentiment_buffer) > SENTIMENT_BUFFER_SIZE:
+                    self.sentiment_buffer = self.sentiment_buffer[-SENTIMENT_BUFFER_SIZE:]
                 
                 logger.info(f"Buffer size: {len(self.sentiment_buffer)} items")
                 
