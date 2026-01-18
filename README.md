@@ -1,7 +1,7 @@
 # Real-Time Sentiment Analysis Pipeline
 
 ### Rationale
-As a doom-scroller with FOMO but is also deeply interested in Machine Learning, DevOps, and SRE, I wanted to explore something that blends all of these concepts using an interesting live data source.
+As a doom-scroller with FOMO and an interest in Machine Learning, DevOps, and SRE, I wanted to explore something that blends all of these concepts using an interesting live data source.
 
 ### Overview
 This project is a fully functional microservice that converts noisy social media streams into actionable market signals. It ingests live Reddit comments, analyzes sentiment using a machine learning model, and exposes metrics and market signals via a REST API.
